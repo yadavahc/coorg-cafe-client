@@ -153,11 +153,11 @@ export default function Home() {
         } px-6 md:px-12`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-4 group">
             <motion.div 
-              whileHover={{ rotate: 180 }}
+              whileHover={{ rotate: 180, scale: 1.1 }}
               transition={{ duration: 0.5 }}
-              className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shadow-lg border border-white/10"
+              className="relative w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden shadow-xl border border-white/10"
             >
               <Image 
                 src="/assets/coorg_cafe_logo.png" 
@@ -449,10 +449,10 @@ export default function Home() {
 
       {/* Featured Section */}
       <section id="featured" className="py-32 px-6 md:px-12 relative z-30 bg-[#1A100C] overflow-hidden">
-        {/* Added custom coffee background with light brown overlay */}
+        {/* Added custom coffee background with light brown overlay - increased visibility */}
         <div className="absolute inset-0 z-0">
-          <Image src="/assets/coffee_background1.jpg" alt="Coffee Background" fill className="object-cover opacity-30 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-[#3E2723]/80" /> {/* Light brown opacity overlay */}
+          <Image src="/assets/coffee_background1.jpg" alt="Coffee Background" fill className="object-cover opacity-80 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[#3E2723]/50" /> {/* Ligher brown opacity overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#1A100C]" /> {/* Edge blending */}
         </div>
 
@@ -566,10 +566,10 @@ export default function Home() {
 
       {/* Menu Section */}
       <section id="menu" className="py-32 px-6 md:px-12 bg-[#1A100C] relative overflow-hidden">
-         {/* Added custom coffee background with light brown overlay */}
+         {/* Added custom coffee background with light brown overlay - increased visibility */}
          <div className="absolute inset-0 z-0">
-           <Image src="/assets/coffee_background2.jpg" alt="Coffee Background 2" fill className="object-cover opacity-20 mix-blend-luminosity" />
-           <div className="absolute inset-0 bg-[#4A332A]/85" /> {/* Light brown opacity overlay */}
+           <Image src="/assets/coffee_background2.jpg" alt="Coffee Background 2" fill className="object-cover opacity-75 mix-blend-luminosity" />
+           <div className="absolute inset-0 bg-[#4A332A]/55" /> {/* Lighter brown opacity overlay */}
            <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#2D1B15]" /> {/* Edge blending */}
          </div>
 
@@ -670,6 +670,13 @@ export default function Home() {
 
       {/* Testimonials Carousel */}
       <section className="py-32 px-6 md:px-12 bg-[#2D1B15] relative overflow-hidden">
+        {/* Background Coffee Theme with light brown overlay */}
+        <div className="absolute inset-0 z-0">
+          <Image src="/assets/coffee_background3.jpg" alt="Testimonials Background" fill className="object-cover opacity-75 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[#3E2723]/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#2D1B15] via-transparent to-[#2D1B15]" />
+        </div>
+
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/20 blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-1/3 h-full bg-secondary/5 blur-[100px] pointer-events-none" />
@@ -679,68 +686,55 @@ export default function Home() {
           <h2 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight">What Our Patrons Say</h2>
         </div>
 
-        <div className="max-w-5xl mx-auto relative z-10">
-           <div className="overflow-hidden cursor-grab active:cursor-grabbing pb-10" ref={emblaRef}>
-              <motion.div 
-                className="flex"
-                variants={staggerContainer}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-50px" }}
-              >
-                 {TESTIMONIALS.map((testimonial) => (
-                   <motion.div 
-                     variants={fadeInUp}
-                     key={testimonial.id} 
-                     className="flex-[0_0_100%] md:flex-[0_0_80%] lg:flex-[0_0_60%] min-w-0 px-4"
-                   >
-                     <div className="glass-card p-10 md:p-14 rounded-[3rem] border border-white/10 text-center relative shadow-2xl hover:scale-[1.02] transition-transform duration-500">
-                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(215,204,200,0.5)] text-primary z-20">
-                         <Star className="w-5 h-5" fill="currentColor" />
-                       </div>
-                       
-                       {/* Subtle premium glow inside card */}
-                       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] pointer-events-none" />
+        <div className="relative z-10 w-full overflow-hidden">
+           <div className="flex animate-marquee hover:[animation-play-state:paused] py-10">
+              {/* Double the items for a gap-less transition */}
+              {[...TESTIMONIALS, ...TESTIMONIALS].map((testimonial, idx) => (
+                <div 
+                  key={`${testimonial.id}-${idx}`} 
+                  className="flex-[0_0_100%] md:flex-[0_0_50%] lg:flex-[0_0_40%] min-w-0 px-6"
+                >
+                  <div className="glass-card p-10 md:p-14 rounded-[3rem] border border-white/10 text-center relative shadow-2xl transition-all duration-500 hover:border-secondary/30 group">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(215,204,200,0.5)] text-primary z-20">
+                      <Star className="w-5 h-5" fill="currentColor" />
+                    </div>
+                    
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] pointer-events-none" />
 
-                       <p className="text-xl md:text-2xl text-white font-serif italic leading-relaxed mb-8 mt-4 font-light relative z-10">
-                         "{testimonial.text}"
-                       </p>
-                       <div className="flex flex-col items-center relative z-10">
-                         <div className="w-12 h-px bg-secondary/30 mb-4" />
-                         <h4 className="text-secondary font-bold uppercase tracking-widest text-sm drop-shadow-sm">{testimonial.name}</h4>
-                         <div className="flex items-center gap-1 mt-2 text-secondary/50">
-                           {[...Array(testimonial.rating)].map((_, i) => (
-                             <Star key={i} className="w-4 h-4 drop-shadow-lg" fill="currentColor" />
-                           ))}
-                         </div>
-                       </div>
-                     </div>
-                   </motion.div>
-                 ))}
-              </motion.div>
-           </div>
-
-           {/* Carousel Controls */}
-           <div className="flex items-center justify-center gap-6 mt-12">
-             <button onClick={scrollPrev} className="w-12 h-12 rounded-full glass border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors text-secondary hover:text-white group">
-               <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-             </button>
-             <button onClick={scrollNext} className="w-12 h-12 rounded-full glass border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors text-secondary hover:text-white group">
-               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-             </button>
+                    <p className="text-xl md:text-2xl text-white font-serif italic leading-relaxed mb-8 mt-4 font-light relative z-10">
+                      "{testimonial.text}"
+                    </p>
+                    <div className="flex flex-col items-center relative z-10">
+                      <div className="w-12 h-px bg-secondary/30 mb-4" />
+                      <h4 className="text-secondary font-bold uppercase tracking-widest text-sm drop-shadow-sm">{testimonial.name}</h4>
+                      <div className="flex items-center gap-1 mt-2 text-secondary/50">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <Star key={i} className="w-4 h-4 drop-shadow-lg" fill="currentColor" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
            </div>
         </div>
       </section>
 
       {/* Location / Visit Section */}
-      <section id="visit" className="py-32 px-6 md:px-12 bg-[#1A100C] relative z-10">
+      <section id="visit" className="py-32 px-6 md:px-12 bg-[#1A100C] relative z-10 overflow-hidden">
+         {/* Background Coffee Theme with light brown overlay */}
+         <div className="absolute inset-0 z-0">
+           <Image src="/assets/coffee_background1.jpg" alt="Visit Background" fill className="object-cover opacity-50 mix-blend-luminosity" />
+           <div className="absolute inset-0 bg-[#3E2723]/75" />
+           <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#1A100C]" />
+         </div>
          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div 
                initial={{ opacity: 0, y: 50 }}
                whileInView={{ opacity: 1, y: 0 }}
                viewport={{ once: true }}
                transition={{ duration: 0.8 }}
-               className="order-2 lg:order-1"
+               className="order-2 lg:order-1 bg-[#2D1B15]/95 backdrop-blur-xl border border-white/15 shadow-2xl p-10 md:p-14 rounded-[3rem]"
             >
                <span className="inline-block px-4 py-1.5 rounded-full border border-secondary/20 text-secondary font-bold uppercase tracking-[0.2em] text-[10px] mb-6 shadow-sm">
                  Location
@@ -753,7 +747,7 @@ export default function Home() {
                  </div>
                  <div>
                    <h4 className="text-white font-bold text-xl mb-3 font-serif">Address</h4>
-                   <p className="text-secondary/70 leading-relaxed font-light text-lg">
+                   <p className="text-white/90 leading-relaxed font-light text-lg">
                      Sri Rama Temple Circle, Gandhi Circle, Bayasabhi Layout,<br/>
                      KSRTC Colony, Anekal, Karnataka 562106
                    </p>
@@ -766,7 +760,7 @@ export default function Home() {
                  </div>
                  <div>
                    <h4 className="text-white font-bold text-xl mb-3 font-serif">Hours</h4>
-                   <p className="text-secondary/70 font-light text-lg">Open Daily: 5:00 AM – 9:00 PM</p>
+                   <p className="text-white/90 font-light text-lg">Open Daily: 5:00 AM – 9:00 PM</p>
                  </div>
                </div>
                
@@ -810,11 +804,23 @@ export default function Home() {
          </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#1A100C] pt-32 pb-12 px-6 md:px-12 border-t border-white/5 relative z-20 overflow-hidden">
-        {/* Enormous gradient text background effect */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1500px] pointer-events-none opacity-[0.03] select-none flex justify-center mt-10">
-           <span className="text-[15vw] font-serif font-black text-white whitespace-nowrap">COORG</span>
+      <footer className="py-32 px-6 md:px-12 bg-[#0A0503] relative overflow-hidden border-t border-white/5 z-20">
+        {/* Background Video */}
+        <div className="absolute inset-0 z-0">
+          <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-30">
+            <source src="/assets/introbackground.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0A0503] via-[#0A0503]/60 to-[#0A0503]" />
+        </div>
+        {/* Dynamic Background Polish */}
+        <div className="absolute inset-0 z-[1]">
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-secondary/10 blur-[180px] animate-slow-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-primary/15 blur-[180px] animate-slow-pulse delay-1000" />
+        </div>
+
+        {/* Large Decorative Text Background */}
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full max-w-[1500px] pointer-events-none opacity-[0.04] select-none flex justify-center">
+           <span className="text-[18vw] font-serif font-black text-white whitespace-nowrap tracking-tighter">COORG</span>
         </div>
 
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center relative z-10">
@@ -823,7 +829,15 @@ export default function Home() {
              <Image src="/assets/coorg_cafe_logo.png" alt="Logo" fill className="object-cover p-1 relative z-10 group-hover:scale-110 transition-transform duration-500" />
            </div>
            
-           <h2 className="text-5xl md:text-6xl font-serif font-bold text-white tracking-widest mb-16 drop-shadow-md">COORG CAFE</h2>
+           <motion.h2 
+             initial={{ opacity: 0, y: 20 }}
+             whileInView={{ opacity: 1, y: 0 }}
+             viewport={{ once: true }}
+             transition={{ duration: 1, ease: "easeOut" }}
+             className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-secondary to-secondary/30 tracking-[0.2em] mb-16 drop-shadow-2xl"
+           >
+             COORG CAFE
+           </motion.h2>
            
            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 mb-20 w-full">
               {['Menu', 'About Us', 'Location', 'Contact'].map(link => (
@@ -838,7 +852,7 @@ export default function Home() {
            
            <div className="flex flex-col md:flex-row items-center justify-between w-full text-secondary/30 text-[10px] sm:text-xs font-bold uppercase tracking-widest gap-6">
               <p>© 2026 Coorg Cafe. All rights reserved.</p>
-              <p className="flex items-center gap-2">Built with <Heart className="w-3 h-3 text-secondary" /></p>
+
               <p>Authentic Taste. Cozy Vibes.</p>
            </div>
         </div>
