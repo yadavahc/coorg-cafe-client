@@ -22,30 +22,30 @@ type CartItem = MenuItem & { quantity: number };
 // Data
 const MENU_ITEMS: MenuItem[] = [
   // Coffee
-  { id: "c1", name: "Black Coffee", price: 15, category: "Coffee", image: "/assets/premium_coffee.png" },
-  { id: "c2", name: "S.P. Filter Coffee", price: 20, category: "Coffee", image: "/assets/premium_coffee.png" },
-  { id: "c3", name: "Jaggery Filter Coffee", price: 25, category: "Coffee", image: "/assets/premium_coffee.png" },
+  { id: "c1", name: "Black Coffee", price: 15, category: "Coffee", image: "/assets/indian_black_coffee.png" },
+  { id: "c2", name: "S.P. Filter Coffee", price: 20, category: "Coffee", image: "/assets/indian_filter_coffee.png" },
+  { id: "c3", name: "Jaggery Filter Coffee", price: 25, category: "Coffee", image: "/assets/indian_jaggery_filter_coffee.png" },
 
   // Tea
-  { id: "t1", name: "Butter Tea", price: 15, category: "Tea", image: "/assets/premium_tea.png" },
-  { id: "t2", name: "Green Tea", price: 15, category: "Tea", image: "/assets/premium_tea.png" },
-  { id: "t3", name: "Lemon Tea", price: 20, category: "Tea", image: "/assets/premium_tea.png" },
-  { id: "t4", name: "Masala Tea", price: 25, category: "Tea", image: "/assets/premium_tea.png" },
-  { id: "t5", name: "Jaggery Tea", price: 25, category: "Tea", image: "/assets/premium_tea.png" },
-  { id: "t6", name: "Sukku Mani Tea", price: 20, category: "Tea", image: "/assets/premium_tea.png" },
+  { id: "t1", name: "Butter Tea", price: 15, category: "Tea", image: "/assets/indian_butter_tea.png" },
+  { id: "t2", name: "Green Tea", price: 15, category: "Tea", image: "/assets/indian_green_tea.png" },
+  { id: "t3", name: "Lemon Tea", price: 20, category: "Tea", image: "/assets/indian_lemon_tea.png" },
+  { id: "t4", name: "Masala Tea", price: 25, category: "Tea", image: "/assets/indian_masala_chai.png" },
+  { id: "t5", name: "Jaggery Tea", price: 25, category: "Tea", image: "/assets/indian_jaggery_tea.png" },
+  { id: "t6", name: "Sukku Mani Tea", price: 20, category: "Tea", image: "/assets/indian_sukku_mani_tea.png" },
   
   // Health Drinks
-  { id: "h1", name: "Boost", price: 25, category: "Health Drinks", image: "/assets/premium_health_drink.png" },
-  { id: "h2", name: "Horlicks", price: 25, category: "Health Drinks", image: "/assets/premium_health_drink.png" },
+  { id: "h1", name: "Boost", price: 25, category: "Health Drinks", image: "/assets/indian_boost.png" },
+  { id: "h2", name: "Horlicks", price: 25, category: "Health Drinks", image: "/assets/indian_horlicks.png" },
 
   // Milk Specials
-  { id: "m1", name: "Rose Milk", price: 25, category: "Milk Specials", image: "/assets/premium_rose_milk.png" },
-  { id: "m2", name: "Jaggery Milk", price: 25, category: "Milk Specials", image: "/assets/premium_tea.png" }, // Reusing tea image for milk until specific asset
-  { id: "m3", name: "Ragi Malt Milk", price: 25, category: "Milk Specials", image: "/assets/premium_health_drink.png" }, // Reusing malt image
+  { id: "m1", name: "Rose Milk", price: 25, category: "Milk Specials", image: "/assets/indian_rose_milk.png" },
+  { id: "m2", name: "Jaggery Milk", price: 25, category: "Milk Specials", image: "/assets/indian_jaggery_milk.png" },
+  { id: "m3", name: "Ragi Malt Milk", price: 25, category: "Milk Specials", image: "/assets/indian_ragi_malt.png" },
 
   // Others
-  { id: "o1", name: "Citron Fruit Masala", price: 15, category: "Others", image: "/assets/premium_snacks.png" },
-  { id: "o2", name: "Parcel Extra", price: 5, category: "Others", image: "/assets/premium_snacks.png" },
+  { id: "o1", name: "Citron Fruit Masala", price: 15, category: "Others", image: "/assets/indian_citron_fruit_masala.png" },
+  { id: "o2", name: "Parcel Extra", price: 5, category: "Others", image: "/assets/indian_takeaway_bag.png" },
 ];
 
 const CATEGORIES = ["Coffee", "Tea", "Health Drinks", "Milk Specials", "Others"];
@@ -524,7 +524,7 @@ export default function Home() {
               transition={{ duration: 0.8 }}
               className="relative h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10"
             >
-              <Image src="/assets/premium_interior.png" alt="Cafe Interior" fill className="object-cover" />
+              <Image src="/assets/coorg_cafe_complete_menu.png" alt="Coorg Cafe Complete Menu" fill className="object-contain bg-black/20" />
               <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none" />
               <div className="absolute top-6 left-6 glass px-6 py-3 rounded-full text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2 border border-white/20">
                 <Star className="w-4 h-4 text-secondary" fill="currentColor" /> Authentic
