@@ -5,6 +5,8 @@ import { Coffee, X, Plus, Minus, MapPin, Clock, ArrowRight, ShoppingBag, Leaf, Z
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from "framer-motion";
+import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
+import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 
@@ -524,7 +526,7 @@ export default function Home() {
               transition={{ duration: 0.8 }}
               className="relative h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10"
             >
-              <Image src="/assets/coorg_cafe_complete_menu.png" alt="Coorg Cafe Complete Menu" fill className="object-contain bg-black/20" />
+              <Image src="/assets/premium_interior.png" alt="Coorg Cafe Interior" fill className="object-cover" />
               <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none" />
               <div className="absolute top-6 left-6 glass px-6 py-3 rounded-full text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2 border border-white/20">
                 <Star className="w-4 h-4 text-secondary" fill="currentColor" /> Authentic
@@ -562,6 +564,32 @@ export default function Home() {
                </div>
             </motion.div>
          </div>
+      </section>
+
+      {/* Full Menu Scroll Animation Section */}
+      <section className="bg-[#1A100C] w-full flex flex-col items-center justify-center relative overflow-hidden -mt-16 sm:-mt-0 pb-12 pt-0 z-20 border-b border-white/5">
+        <ContainerScroll
+          titleComponent={
+            <>
+              <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-white mb-4 tracking-tight leading-tight">
+                Experience The <br />
+                <span className="text-secondary italic 1">Complete Menu</span>
+              </h1>
+              <p className="text-secondary/60 text-lg md:text-xl font-light mb-8 max-w-2xl mx-auto">
+                Scroll down to immerse yourself in our authentic offerings.
+              </p>
+            </>
+          }
+        >
+          <Image
+            src="/assets/coorg_cafe_complete_menu.png"
+            alt="Coorg Cafe Complete Menu"
+            height={1400}
+            width={1200}
+            className="w-full h-full object-cover object-top rounded-2xl"
+            draggable={false}
+          />
+        </ContainerScroll>
       </section>
 
       {/* Menu Section */}
@@ -834,9 +862,11 @@ export default function Home() {
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              transition={{ duration: 1, ease: "easeOut" }}
-             className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-secondary to-secondary/30 tracking-[0.2em] mb-16 drop-shadow-2xl"
+             className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold tracking-[0.2em] mb-16 drop-shadow-2xl"
            >
-             COORG CAFE
+             <AnimatedShinyText shimmerWidth={200} className="inline-flex">
+               COORG CAFE
+             </AnimatedShinyText>
            </motion.h2>
            
            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 mb-20 w-full">
