@@ -587,8 +587,11 @@ export default function Home() {
                     src={src} 
                     alt="Coorg Cafe" 
                     fill 
-                    className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110 sepia-[.2] contrast-110" 
                   />
+                  {/* Vintage warm coffee tint */}
+                  <div className="absolute inset-0 bg-[#8D6E63] mix-blend-color opacity-50 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
+                  <div className="absolute inset-0 bg-[#3E2723] mix-blend-multiply opacity-40 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
                   {/* Cinematic vignette */}
                   <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] pointer-events-none" />
                   {/* Bottom gradient */}
