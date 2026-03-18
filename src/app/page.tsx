@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Coffee, X, Plus, Minus, MapPin, Clock, ArrowRight, ShoppingBag, Leaf, Zap, Heart, Star, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from "framer-motion";
 import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
+import { VapourTextEffect } from "@/components/ui/vapour-text-effect";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -72,6 +73,70 @@ const staggerContainer: Variants = {
     transition: { staggerChildren: 0.15 }
   }
 };
+
+// Staggered letter animation for hero
+const letterContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.4 }
+  }
+};
+const letterAnim: Variants = {
+  hidden: { opacity: 0, y: 60, rotateX: -80 },
+  visible: { opacity: 1, y: 0, rotateX: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+};
+
+// Animated counter hook
+function useCountUp(end: number, duration = 2000) {
+  const [count, setCount] = React.useState(0);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const started = React.useRef(false);
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true;
+        const startTime = performance.now();
+        const step = (now: number) => {
+          const progress = Math.min((now - startTime) / duration, 1);
+          setCount(Math.floor(progress * end));
+          if (progress < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+    }, { threshold: 0.5 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [end, duration]);
+  return { count, ref };
+}
+
+// CountUpStat component
+function CountUpStat({ end, suffix, label }: { end: number; suffix: string; label: string }) {
+  const { count, ref } = useCountUp(end);
+  return (
+    <div ref={ref}>
+      <h4 className="text-white font-bold text-3xl font-serif mb-2">{count}{suffix}</h4>
+      <p className="text-xs uppercase tracking-widest text-secondary/60 font-bold">{label}</p>
+    </div>
+  );
+}
+
+// Floating coffee bean particles for hero (fixed values to avoid hydration mismatch)
+const PARTICLES = [
+  { id: 0, x: 8, delay: 0, duration: 14, size: 5, opacity: 0.15 },
+  { id: 1, x: 22, delay: 1.2, duration: 11, size: 7, opacity: 0.12 },
+  { id: 2, x: 35, delay: 2.5, duration: 16, size: 4, opacity: 0.18 },
+  { id: 3, x: 48, delay: 0.8, duration: 10, size: 8, opacity: 0.1 },
+  { id: 4, x: 55, delay: 3.1, duration: 13, size: 6, opacity: 0.2 },
+  { id: 5, x: 65, delay: 1.7, duration: 18, size: 5, opacity: 0.14 },
+  { id: 6, x: 72, delay: 4.0, duration: 9, size: 9, opacity: 0.11 },
+  { id: 7, x: 80, delay: 0.5, duration: 15, size: 6, opacity: 0.16 },
+  { id: 8, x: 88, delay: 2.8, duration: 12, size: 4, opacity: 0.13 },
+  { id: 9, x: 15, delay: 3.5, duration: 17, size: 7, opacity: 0.19 },
+  { id: 10, x: 42, delay: 1.0, duration: 10, size: 5, opacity: 0.15 },
+  { id: 11, x: 95, delay: 4.5, duration: 14, size: 8, opacity: 0.12 },
+];
 
 export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -174,7 +239,7 @@ export default function Home() {
           </Link>
 
           <div className="hidden md:flex items-center gap-10">
-            {["Featured", "Menu", "About Us", "Visit"].map((link) => (
+            {["Gallery", "Menu", "About Us", "Visit"].map((link) => (
               <a 
                 key={link}
                 href={`#${link.toLowerCase().replace(" ", "-")}`} 
@@ -431,6 +496,19 @@ export default function Home() {
            </motion.div>
         </div>
         
+        {/* Floating coffee particles */}
+        <div className="absolute inset-0 z-15 pointer-events-none overflow-hidden">
+          {PARTICLES.map(p => (
+            <motion.div
+              key={p.id}
+              className="absolute rounded-full bg-secondary"
+              style={{ left: `${p.x}%`, width: p.size, height: p.size, opacity: p.opacity }}
+              animate={{ y: ['110vh', '-10vh'], rotate: [0, 360] }}
+              transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: 'linear' }}
+            />
+          ))}
+        </div>
+
         {/* Scroll Indicator */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -449,66 +527,86 @@ export default function Home() {
         </motion.div>
       </motion.header>
 
-      {/* Featured Section */}
-      <section id="featured" className="py-32 px-6 md:px-12 relative z-30 bg-[#1A100C] overflow-hidden">
-        {/* Added custom coffee background with light brown overlay - increased visibility */}
+      {/* Gallery Section */}
+      <section id="gallery" className="py-32 relative z-30 bg-[#1A100C] overflow-hidden">
+        {/* Background */}
         <div className="absolute inset-0 z-0">
           <Image src="/assets/coffee_background1.jpg" alt="Coffee Background" fill className="object-cover opacity-80 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-[#3E2723]/50" /> {/* Ligher brown opacity overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#1A100C]" /> {/* Edge blending */}
+          <div className="absolute inset-0 bg-[#3E2723]/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#1A100C]" />
         </div>
+        {/* Animated background glow */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-secondary/20 rounded-full blur-[180px] pointer-events-none z-0"
+        />
 
-        <div className="max-w-7xl mx-auto relative z-10">
+        <div className="relative z-10">
           <motion.div 
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
             variants={fadeInUp}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6"
+            className="text-center mb-16 px-6"
           >
-            <div>
-              <span className="text-secondary/60 text-xs font-bold uppercase tracking-[0.2em] mb-4 block">Hand-picked for you</span>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white tracking-tight">Featured Blends</h2>
-            </div>
-            <a href="#menu" className="text-sm font-bold uppercase tracking-widest text-secondary hover:text-white flex items-center gap-2 group transition-colors">
-              View Full Menu <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </a>
+            <span className="inline-block px-4 py-1.5 rounded-full border border-secondary/20 text-secondary font-bold uppercase tracking-[0.2em] text-[10px] mb-6 shadow-sm">
+              Our Space
+            </span>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white tracking-tight">Gallery</h2>
+            <p className="text-secondary/60 text-lg font-light mt-4 max-w-xl mx-auto">A glimpse into the warm, cozy ambiance of Coorg Cafe.</p>
+            {/* Decorative line */}
+            <div className="w-24 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent mx-auto mt-8" />
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredDrinks.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                className="group relative h-[450px] rounded-[2rem] overflow-hidden cursor-pointer"
-              >
-                {/* Background Image */}
-                <Image 
-                  src={item.image} 
-                  alt={item.name} 
-                  fill 
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
-                
-                {/* Content */}
-                <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                   <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                     <span className="text-xs font-bold uppercase tracking-widest text-secondary mb-2 block">{item.category}</span>
-                     <h3 className="text-3xl font-serif font-bold text-white mb-4">{item.name}</h3>
-                     <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                       <span className="text-xl font-bold text-white">₹{item.price}</span>
-                       <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center hover:scale-110 transition-transform shadow-lg text-primary">
-                         <Plus className="w-5 h-5" />
-                       </button>
-                     </div>
-                   </div>
+          {/* Horizontal scrolling gallery with edge fades */}
+          <div className="w-full overflow-hidden relative">
+            {/* Left fade mask */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 md:w-48 bg-gradient-to-r from-[#1A100C] to-transparent z-10 pointer-events-none" />
+            {/* Right fade mask */}
+            <div className="absolute right-0 top-0 bottom-0 w-32 md:w-48 bg-gradient-to-l from-[#1A100C] to-transparent z-10 pointer-events-none" />
+            
+            <div className="flex animate-gallery-scroll hover:[animation-play-state:paused] gap-8 py-6">
+              {[
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151641.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151648.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151653.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151707.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151715.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151641.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151648.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151653.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151707.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151715.png",
+              ].map((src, index) => (
+                <div
+                  key={index}
+                  className="flex-shrink-0 w-[380px] md:w-[500px] h-[300px] md:h-[380px] relative rounded-[2rem] overflow-hidden group shadow-[0_20px_60px_rgba(0,0,0,0.6)] cursor-pointer transition-all duration-500 hover:shadow-[0_30px_80px_rgba(215,204,200,0.15)]"
+                >
+                  <Image 
+                    src={src} 
+                    alt="Coorg Cafe" 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                  />
+                  {/* Cinematic vignette */}
+                  <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] pointer-events-none" />
+                  {/* Bottom gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                  {/* Hover border glow */}
+                  <div className="absolute inset-0 rounded-[2rem] border-2 border-secondary/0 group-hover:border-secondary/30 transition-all duration-500 pointer-events-none" />
+                  {/* Label */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-px bg-secondary/60" />
+                      <span className="text-xs font-bold text-secondary/80 tracking-[0.2em] uppercase">Coorg Cafe</span>
+                    </div>
+                  </div>
+                  {/* Corner shine */}
+                  <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                 </div>
-              </motion.div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -524,9 +622,9 @@ export default function Home() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.8 }}
-              className="relative h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10"
+              className="relative h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 bg-[#2D1B15]"
             >
-              <Image src="/assets/premium_interior.png" alt="Coorg Cafe Interior" fill className="object-cover" />
+              <Image src="/assets/coorg_cafe_logo.png" alt="Coorg Cafe Logo" fill className="object-contain scale-75" />
               <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none" />
               <div className="absolute top-6 left-6 glass px-6 py-3 rounded-full text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2 border border-white/20">
                 <Star className="w-4 h-4 text-secondary" fill="currentColor" /> Authentic
@@ -553,14 +651,8 @@ export default function Home() {
                </p>
                
                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-white/10">
-                 <div>
-                   <h4 className="text-white font-bold text-3xl font-serif mb-2">100%</h4>
-                   <p className="text-xs uppercase tracking-widest text-secondary/60 font-bold">Organic Beans</p>
-                 </div>
-                 <div>
-                   <h4 className="text-white font-bold text-3xl font-serif mb-2">50+</h4>
-                   <p className="text-xs uppercase tracking-widest text-secondary/60 font-bold">Daily Options</p>
-                 </div>
+                 <CountUpStat end={100} suffix="%" label="Organic Beans" />
+                 <CountUpStat end={15} suffix="+" label="Daily Options" />
                </div>
             </motion.div>
          </div>
@@ -711,7 +803,7 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto relative z-10 text-center mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full border border-secondary/20 text-secondary font-bold uppercase tracking-[0.2em] text-[10px] mb-6 shadow-sm">Reviews</span>
-          <h2 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight">What Our Patrons Say</h2>
+          <h2 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight">What Our Customers Say</h2>
         </div>
 
         <div className="relative z-10 w-full overflow-hidden">

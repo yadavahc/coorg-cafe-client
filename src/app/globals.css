@@ -96,6 +96,15 @@
   animation: pulse-slow 3s ease-in-out infinite;
 }
 
+@keyframes gallery-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-gallery-scroll {
+  animation: gallery-scroll 40s linear infinite;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
