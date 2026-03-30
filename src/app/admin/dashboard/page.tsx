@@ -20,6 +20,7 @@ interface Order {
   table_id: string | null;
   table_number?: number | null;
   order_type: "table_order" | "counter_order";
+  payment_method: "cash" | "online";
   payment_status: "pending" | "paid" | "failed" | "cash_pending" | "cash_confirmed";
   total_amount: number;
   status: "placed" | "preparing" | "out_for_delivery" | "delivered" | "pending" | "completed";
