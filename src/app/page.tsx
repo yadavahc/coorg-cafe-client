@@ -11,21 +11,21 @@ import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { supabase } from "@/lib/supabase";
-import { BASE_MENU_ITEMS, BASE_MENU_IDS } from "@/lib/menuItems";
+import { BASE_MENU_ITEMS, BASE_MENU_IDS, MenuCategory } from "@/lib/menuItems";
 
 // Types
 type MenuItem = {
   id: string;
   name: string;
   price: number;
-  category: "Coffee" | "Tea" | "Health Drinks" | "Milk Specials" | "Others";
+  category: MenuCategory;
   image: string;
 };
 
 type CartItem = MenuItem & { quantity: number };
 
 // Base menu items (always shown)
-const MENU_ITEMS: MenuItem[] = BASE_MENU_ITEMS;
+const MENU_ITEMS: MenuItem[] = BASE_MENU_ITEMS.map(({ isBase, ...item }) => item);
 
 const CATEGORIES = ["Coffee", "Tea", "Health Drinks", "Milk Specials", "Others"];
 

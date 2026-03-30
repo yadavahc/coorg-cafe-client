@@ -1,5 +1,16 @@
 // Base menu items - source of truth for the landing page
-export const BASE_MENU_ITEMS = [
+export type MenuCategory = "Coffee" | "Tea" | "Health Drinks" | "Milk Specials" | "Others";
+
+export type BaseMenuItem = {
+  id: string;
+  name: string;
+  price: number;
+  category: MenuCategory;
+  image: string;
+  isBase: boolean;
+};
+
+export const BASE_MENU_ITEMS: BaseMenuItem[] = [
   // Coffee
   { id: "c1", name: "Black Coffee", price: 15, category: "Coffee", image: "/assets/indian_black_coffee.png", isBase: true },
   { id: "c2", name: "S.P. Filter Coffee", price: 20, category: "Coffee", image: "/assets/indian_filter_coffee.png", isBase: true },
