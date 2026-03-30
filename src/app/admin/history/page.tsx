@@ -20,15 +20,13 @@ import * as analytics from "@/lib/analytics";
 
 interface Order {
   id: string;
-  table_id: string | null;
   table_number?: number | null;
-  order_type?: "table_order" | "counter_order";
-  payment_method?: "cash" | "online";
-  payment_status?: "pending" | "paid" | "failed" | "cash_pending" | "cash_confirmed";
+  order_type: "table_order" | "counter_order";
+  payment_method: "cash" | "online";
+  payment_status: "pending" | "paid" | "failed" | "cash_pending" | "cash_confirmed";
   total_amount: number;
   status: string;
   created_at: string;
-  cafe_tables?: { table_number: number };
 }
 
 type ReportTab = "all" | "daily" | "weekly" | "monthly" | "payment" | "source";
@@ -62,7 +60,13 @@ export default function OrderHistory() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+
+      const formattedOrders = (data || []).map((o: any) => ({
+        ...o,
+        table_number: o.cafe_tables?.table_number
+      }));
+
+      setOrders(formattedOrders);
     } catch (error) {
       console.error("Error fetching history:", error);
     } finally {
@@ -311,9 +315,7 @@ function AllOrdersTable({ orders }: { orders: Order[] }) {
                       ? "Counter"
                       : order.table_number
                         ? `Table ${order.table_number}`
-                        : order.cafe_tables?.table_number
-                          ? `Table ${order.cafe_tables.table_number}`
-                          : "Table NA"}
+                        : "Table NA"}
                   </span>
                 </td>
                 <td className="px-6 py-4">
