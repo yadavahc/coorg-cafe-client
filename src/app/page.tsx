@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Coffee, X, Plus, Minus, MapPin, Clock, ArrowRight, ShoppingBag, Leaf, Zap, Heart, Star, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { X, Plus, Minus, MapPin, Clock, ArrowRight, ShoppingBag, Leaf, Zap, Heart, Star, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from "framer-motion";
@@ -10,6 +10,8 @@ import { VapourTextEffect } from "@/components/ui/vapour-text-effect";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
+import { supabase } from "@/lib/supabase";
+import { BASE_MENU_ITEMS, BASE_MENU_IDS } from "@/lib/menuItems";
 
 // Types
 type MenuItem = {
@@ -22,34 +24,8 @@ type MenuItem = {
 
 type CartItem = MenuItem & { quantity: number };
 
-// Data
-const MENU_ITEMS: MenuItem[] = [
-  // Coffee
-  { id: "c1", name: "Black Coffee", price: 15, category: "Coffee", image: "/assets/indian_black_coffee.png" },
-  { id: "c2", name: "S.P. Filter Coffee", price: 20, category: "Coffee", image: "/assets/indian_filter_coffee.png" },
-  { id: "c3", name: "Jaggery Filter Coffee", price: 25, category: "Coffee", image: "/assets/indian_jaggery_filter_coffee.png" },
-
-  // Tea
-  { id: "t1", name: "Butter Tea", price: 15, category: "Tea", image: "/assets/indian_butter_tea.png" },
-  { id: "t2", name: "Green Tea", price: 15, category: "Tea", image: "/assets/indian_green_tea.png" },
-  { id: "t3", name: "Lemon Tea", price: 20, category: "Tea", image: "/assets/indian_lemon_tea.png" },
-  { id: "t4", name: "Masala Tea", price: 25, category: "Tea", image: "/assets/indian_masala_chai.png" },
-  { id: "t5", name: "Jaggery Tea", price: 25, category: "Tea", image: "/assets/indian_jaggery_tea.png" },
-  { id: "t6", name: "Sukku Mani Tea", price: 20, category: "Tea", image: "/assets/indian_sukku_mani_tea.png" },
-  
-  // Health Drinks
-  { id: "h1", name: "Boost", price: 25, category: "Health Drinks", image: "/assets/indian_boost.png" },
-  { id: "h2", name: "Horlicks", price: 25, category: "Health Drinks", image: "/assets/indian_horlicks.png" },
-
-  // Milk Specials
-  { id: "m1", name: "Rose Milk", price: 25, category: "Milk Specials", image: "/assets/indian_rose_milk.png" },
-  { id: "m2", name: "Jaggery Milk", price: 25, category: "Milk Specials", image: "/assets/indian_jaggery_milk.png" },
-  { id: "m3", name: "Ragi Malt Milk", price: 25, category: "Milk Specials", image: "/assets/indian_ragi_malt.png" },
-
-  // Others
-  { id: "o1", name: "Citron Fruit Masala", price: 15, category: "Others", image: "/assets/indian_citron_fruit_masala.png" },
-  { id: "o2", name: "Parcel Extra", price: 5, category: "Others", image: "/assets/indian_takeaway_bag.png" },
-];
+// Base menu items (always shown)
+const MENU_ITEMS: MenuItem[] = BASE_MENU_ITEMS;
 
 const CATEGORIES = ["Coffee", "Tea", "Health Drinks", "Milk Specials", "Others"];
 
@@ -87,41 +63,6 @@ const letterAnim: Variants = {
   visible: { opacity: 1, y: 0, rotateX: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
 };
 
-// Animated counter hook
-function useCountUp(end: number, duration = 2000) {
-  const [count, setCount] = React.useState(0);
-  const ref = React.useRef<HTMLDivElement>(null);
-  const started = React.useRef(false);
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !started.current) {
-        started.current = true;
-        const startTime = performance.now();
-        const step = (now: number) => {
-          const progress = Math.min((now - startTime) / duration, 1);
-          setCount(Math.floor(progress * end));
-          if (progress < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }
-    }, { threshold: 0.5 });
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [end, duration]);
-  return { count, ref };
-}
-
-// CountUpStat component
-function CountUpStat({ end, suffix, label }: { end: number; suffix: string; label: string }) {
-  const { count, ref } = useCountUp(end);
-  return (
-    <div ref={ref}>
-      <h4 className="text-white font-bold text-3xl font-serif mb-2">{count}{suffix}</h4>
-      <p className="text-xs uppercase tracking-widest text-secondary/60 font-bold">{label}</p>
-    </div>
-  );
-}
-
 // Floating coffee bean particles for hero (fixed values to avoid hydration mismatch)
 const PARTICLES = [
   { id: 0, x: 8, delay: 0, duration: 14, size: 5, opacity: 0.15 },
@@ -141,6 +82,7 @@ const PARTICLES = [
 export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>(MENU_ITEMS);
   const [activeCategory, setActiveCategory] = useState("Coffee");
   const [scrolled, setScrolled] = useState(false);
 
@@ -149,6 +91,43 @@ export default function Home() {
     { loop: true, align: "start" },
     [Autoplay({ delay: 3000, stopOnInteraction: false })]
   );
+
+  // Fetch additional items from database (new items added by admin)
+  useEffect(() => {
+    async function fetchAdditionalItems() {
+      try {
+        const { data, error } = await supabase
+          .from("menu_items")
+          .select("*")
+          .eq("is_available", true);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          // Add new items from database that aren't in base menu
+          const newItems = data.filter(item => !BASE_MENU_IDS.has(item.id));
+
+          if (newItems.length > 0) {
+            const dbItems = newItems.map(item => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              category: item.category || "Others",
+              image: item.image_url || "/assets/placeholder.png"
+            }));
+
+            setAllMenuItems([...MENU_ITEMS, ...dbItems]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching menu items:", error);
+        // Keep base items on error
+        setAllMenuItems(MENU_ITEMS);
+      }
+    }
+
+    fetchAdditionalItems();
+  }, []);
 
   const scrollPrev = () => emblaApi && emblaApi.scrollPrev();
   const scrollNext = () => emblaApi && emblaApi.scrollNext();
@@ -199,12 +178,12 @@ export default function Home() {
   const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
 
   // Derived state
-  const displayedItems = MENU_ITEMS.filter(item => item.category === activeCategory);
+  const displayedItems = allMenuItems.filter(item => item.category === activeCategory);
   // Featured drinks (hardcoded for impact)
   const featuredDrinks = [
-    MENU_ITEMS.find(i => i.id === "c2"), // S.P. Filter Coffee
-    MENU_ITEMS.find(i => i.id === "t4"), // Masala Tea
-    MENU_ITEMS.find(i => i.id === "m1"), // Rose Milk
+    allMenuItems.find(i => i.id === "c2"), // S.P. Filter Coffee
+    allMenuItems.find(i => i.id === "t4"), // Masala Tea
+    allMenuItems.find(i => i.id === "m1"), // Rose Milk
   ].filter(Boolean) as MenuItem[];
 
   return (
@@ -385,8 +364,8 @@ export default function Home() {
                       <span className="text-secondary/80 text-xs italic">Calculated at checkout</span>
                     </div>
                     
-                    <Link href="/table/1/checkout" onClick={() => setIsCartOpen(false)}>
-                      <motion.div 
+                    <Link href={`/table/1/checkout?cart=${encodeURIComponent(JSON.stringify(cart))}`} onClick={() => setIsCartOpen(false)}>
+                      <motion.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className="w-full py-4 rounded-xl bg-gradient-to-r from-secondary to-[#EFEBE9] text-primary font-bold text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(215,204,200,0.3)] transition-all overflow-hidden relative group"
@@ -527,51 +506,91 @@ export default function Home() {
         </motion.div>
       </motion.header>
 
-      {/* About Split Section */}
-      <section id="about" className="py-24 px-6 md:px-12 bg-[#2D1B15] relative overflow-hidden border-y border-white/5">
-         {/* Background glow */}
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/30 rounded-full blur-[150px] pointer-events-none" />
-         
-         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8 }}
-              className="relative h-[600px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 bg-[#2D1B15]"
-            >
-              <Image src="/assets/coorg_cafe_logo.png" alt="Coorg Cafe Logo" fill className="object-contain scale-75" />
-              <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] pointer-events-none" />
-              <div className="absolute top-6 left-6 glass px-6 py-3 rounded-full text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2 border border-white/20">
-                <Star className="w-4 h-4 text-secondary" fill="currentColor" /> Authentic
-              </div>
-            </motion.div>
+      {/* Gallery Section */}
+      <section id="gallery" className="py-32 relative z-30 bg-[#1A100C] overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 z-0">
+          <Image src="/assets/coffee_background1.jpg" alt="Coffee Background" fill className="object-cover opacity-80 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[#3E2723]/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#1A100C]" />
+        </div>
+        {/* Animated background glow */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-secondary/20 rounded-full blur-[180px] pointer-events-none z-0"
+        />
 
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-               <div className="w-16 h-16 rounded-full glass flex items-center justify-center mb-8 border border-white/10">
-                 <Coffee className="w-8 h-8 text-secondary" />
-               </div>
-               <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-white mb-8 tracking-tight leading-tight">
-                 The Art of <br/><span className="text-secondary italic">Perfect Brewing</span>
-               </h2>
-               <p className="text-lg text-secondary/80 leading-relaxed mb-6 font-light">
-                 At Coorg Cafe, we believe that every cup tells a story. Sourced directly from the misty hills of Coorg, our beans are roasted to perfection to bring out the authentic, rich notes that define a premium coffee experience.
-               </p>
-               <p className="text-lg text-secondary/80 leading-relaxed mb-10 font-light">
-                 Beyond coffee, we offer uniquely crafted health drinks, traditional teas, and refreshing milk specials, all served in an ambiance designed to let you unwind and savor the moment.
-               </p>
-               
-               <div className="grid grid-cols-2 gap-8 pt-8 border-t border-white/10">
-                 <CountUpStat end={100} suffix="%" label="Organic Beans" />
-                 <CountUpStat end={15} suffix="+" label="Daily Options" />
-               </div>
-            </motion.div>
-         </div>
+        <div className="relative z-10">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="text-center mb-16 px-6"
+          >
+            <span className="inline-block px-4 py-1.5 rounded-full border border-secondary/20 text-secondary font-bold uppercase tracking-[0.2em] text-[10px] mb-6 shadow-sm">
+              Our Space
+            </span>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white tracking-tight">Gallery</h2>
+            <p className="text-secondary/60 text-lg font-light mt-4 max-w-xl mx-auto">A glimpse into the warm, cozy ambiance of Coorg Cafe.</p>
+            {/* Decorative line */}
+            <div className="w-24 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent mx-auto mt-8" />
+          </motion.div>
+
+          {/* Horizontal scrolling gallery with edge fades */}
+          <div className="w-full overflow-hidden relative">
+            {/* Left fade mask */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 md:w-48 bg-gradient-to-r from-[#1A100C] to-transparent z-10 pointer-events-none" />
+            {/* Right fade mask */}
+            <div className="absolute right-0 top-0 bottom-0 w-32 md:w-48 bg-gradient-to-l from-[#1A100C] to-transparent z-10 pointer-events-none" />
+            
+            <div className="flex animate-gallery-scroll hover:[animation-play-state:paused] gap-8 py-6">
+              {[
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151641.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151648.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151653.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151707.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151715.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151641.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151648.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151653.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151707.png",
+                "/assets/gallery%20photos/Screenshot%202026-03-18%20151715.png",
+              ].map((src, index) => (
+                <div
+                  key={index}
+                  className="flex-shrink-0 w-[380px] md:w-[500px] h-[300px] md:h-[380px] relative rounded-[2rem] overflow-hidden group shadow-[0_20px_60px_rgba(0,0,0,0.6)] cursor-pointer transition-all duration-500 hover:shadow-[0_30px_80px_rgba(215,204,200,0.15)]"
+                >
+                  <Image 
+                    src={src} 
+                    alt="Coorg Cafe" 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110 sepia-[.2] contrast-110" 
+                  />
+                  {/* Vintage warm coffee tint */}
+                  <div className="absolute inset-0 bg-[#8D6E63] mix-blend-color opacity-50 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
+                  <div className="absolute inset-0 bg-[#3E2723] mix-blend-multiply opacity-40 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
+                  {/* Cinematic vignette */}
+                  <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] pointer-events-none" />
+                  {/* Bottom gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                  {/* Hover border glow */}
+                  <div className="absolute inset-0 rounded-[2rem] border-2 border-secondary/0 group-hover:border-secondary/30 transition-all duration-500 pointer-events-none" />
+                  {/* Label */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-px bg-secondary/60" />
+                      <span className="text-xs font-bold text-secondary/80 tracking-[0.2em] uppercase">Coorg Cafe</span>
+                    </div>
+                  </div>
+                  {/* Corner shine */}
+                  <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Full Menu Scroll Animation Section */}
@@ -702,93 +721,6 @@ export default function Home() {
                ))}
             </motion.div>
          </div>
-      </section>
-
-      {/* Gallery Section */}
-      <section id="gallery" className="py-32 relative z-30 bg-[#1A100C] overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 z-0">
-          <Image src="/assets/coffee_background1.jpg" alt="Coffee Background" fill className="object-cover opacity-80 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-[#3E2723]/50" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1A100C] via-transparent to-[#1A100C]" />
-        </div>
-        {/* Animated background glow */}
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-secondary/20 rounded-full blur-[180px] pointer-events-none z-0"
-        />
-
-        <div className="relative z-10">
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={fadeInUp}
-            className="text-center mb-16 px-6"
-          >
-            <span className="inline-block px-4 py-1.5 rounded-full border border-secondary/20 text-secondary font-bold uppercase tracking-[0.2em] text-[10px] mb-6 shadow-sm">
-              Our Space
-            </span>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white tracking-tight">Gallery</h2>
-            <p className="text-secondary/60 text-lg font-light mt-4 max-w-xl mx-auto">A glimpse into the warm, cozy ambiance of Coorg Cafe.</p>
-            {/* Decorative line */}
-            <div className="w-24 h-px bg-gradient-to-r from-transparent via-secondary/50 to-transparent mx-auto mt-8" />
-          </motion.div>
-
-          {/* Horizontal scrolling gallery with edge fades */}
-          <div className="w-full overflow-hidden relative">
-            {/* Left fade mask */}
-            <div className="absolute left-0 top-0 bottom-0 w-32 md:w-48 bg-gradient-to-r from-[#1A100C] to-transparent z-10 pointer-events-none" />
-            {/* Right fade mask */}
-            <div className="absolute right-0 top-0 bottom-0 w-32 md:w-48 bg-gradient-to-l from-[#1A100C] to-transparent z-10 pointer-events-none" />
-            
-            <div className="flex animate-gallery-scroll hover:[animation-play-state:paused] gap-8 py-6">
-              {[
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151641.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151648.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151653.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151707.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151715.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151641.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151648.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151653.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151707.png",
-                "/assets/gallery%20photos/Screenshot%202026-03-18%20151715.png",
-              ].map((src, index) => (
-                <div
-                  key={index}
-                  className="flex-shrink-0 w-[380px] md:w-[500px] h-[300px] md:h-[380px] relative rounded-[2rem] overflow-hidden group shadow-[0_20px_60px_rgba(0,0,0,0.6)] cursor-pointer transition-all duration-500 hover:shadow-[0_30px_80px_rgba(215,204,200,0.15)]"
-                >
-                  <Image 
-                    src={src} 
-                    alt="Coorg Cafe" 
-                    fill 
-                    className="object-cover transition-transform duration-700 group-hover:scale-110 sepia-[.2] contrast-110" 
-                  />
-                  {/* Vintage warm coffee tint */}
-                  <div className="absolute inset-0 bg-[#8D6E63] mix-blend-color opacity-50 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
-                  <div className="absolute inset-0 bg-[#3E2723] mix-blend-multiply opacity-40 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
-                  {/* Cinematic vignette */}
-                  <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] pointer-events-none" />
-                  {/* Bottom gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-                  {/* Hover border glow */}
-                  <div className="absolute inset-0 rounded-[2rem] border-2 border-secondary/0 group-hover:border-secondary/30 transition-all duration-500 pointer-events-none" />
-                  {/* Label */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-px bg-secondary/60" />
-                      <span className="text-xs font-bold text-secondary/80 tracking-[0.2em] uppercase">Coorg Cafe</span>
-                    </div>
-                  </div>
-                  {/* Corner shine */}
-                  <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Testimonials Carousel */}

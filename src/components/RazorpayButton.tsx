@@ -30,30 +30,61 @@ export default function RazorpayButton({ orderId, amount, onSuccess, autoOpen }:
     try {
       setLoading(true);
 
+      // Check if using demo mode (no valid API key)
+      const apiKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "";
+      const isDemoMode = !apiKey || apiKey === "rzp_test_your_key_id" || apiKey.includes("test");
+
+      if (isDemoMode) {
+        // Demo mode: simulate payment success
+        const { error } = await supabase
+          .from("orders")
+          .update({ payment_status: "paid" })
+          .eq("id", orderId);
+
+        if (error) {
+          console.error("Failed to update status:", error);
+          alert("Failed to confirm order. Please try again.");
+          return;
+        }
+
+        await supabase.from("payments").insert([{
+          order_id: orderId,
+          razorpay_order_id: `demo_${Date.now()}`,
+          razorpay_payment_id: `demo_${Math.random().toString(36).substr(2, 9)}`,
+          razorpay_signature: "demo_signature",
+          payment_method: "online",
+          status: "completed",
+          amount: amount
+        }]);
+
+        if (onSuccess) onSuccess();
+        return;
+      }
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_your_key_id",
-        amount: amount * 100, // Razorpay expects amount in paise
+        key: apiKey,
+        amount: amount * 100,
         currency: "INR",
         name: "Coorg Cafe",
         description: `Payment for Order #${orderId.slice(0, 8)}`,
         image: "/coffee-icon.png",
         handler: async function (response: any) {
-          // On Success
           const { error } = await supabase
             .from("orders")
-            .update({ status: "paid" })
+            .update({ payment_status: "paid" })
             .eq("id", orderId);
 
           if (error) {
             console.error("Failed to update status, but payment was successful:", error);
           }
 
-          // Insert into payments table
           await supabase.from("payments").insert([{
             order_id: orderId,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
-            status: "success",
+            razorpay_signature: response.razorpay_signature,
+            payment_method: "online",
+            status: "completed",
             amount: amount
           }]);
 
@@ -65,11 +96,17 @@ export default function RazorpayButton({ orderId, amount, onSuccess, autoOpen }:
           contact: "9999999999",
         },
         theme: {
-          color: "#3E2723", // Primary brown
+          color: "#3E2723",
         },
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", async () => {
+        await supabase
+          .from("orders")
+          .update({ payment_status: "failed" })
+          .eq("id", orderId);
+      });
       rzp.open();
     } catch (error) {
       console.error("Razorpay error:", error);

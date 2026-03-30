@@ -17,7 +17,9 @@ import { cn, formatPrice } from "@/lib/utils";
 
 interface Order {
   id: string;
-  status: 'pending' | 'preparing' | 'completed' | 'paid';
+  status: "placed" | "preparing" | "out_for_delivery" | "delivered" | "pending" | "completed";
+  payment_status?: "pending" | "paid" | "failed" | "cash_pending" | "cash_confirmed";
+  estimated_ready_at?: string;
   total_amount: number;
 }
 
@@ -71,15 +73,28 @@ export default function OrderStatus() {
     }
   }
 
-  const steps = [
-    { status: 'pending', label: 'Order Received', icon: Clock, desc: 'We have received your coffee request.' },
-    { status: 'preparing', label: 'Preparing', icon: ChefHat, desc: 'Our barista is hand-picking your beans.' },
-    { status: 'completed', label: 'Ready', icon: CheckCircle2, desc: 'Your coffee is ready! Enjoy the aroma.' }
-  ];
+  const normalizeStatus = (status: Order["status"]) => {
+    if (status === "pending") return "placed";
+    if (status === "completed") return "delivered";
+    return status;
+  };
 
-  const currentStepIndex = order ? steps.findIndex(s => s.status === order.status) : 0;
-  // If status is 'paid', it's effectively 'pending' or 'preparing' but we'll show based on kitchen flow.
-  // For simplicity, handle 'paid' as 'pending' for customer tracking unless kitchen updates it.
+  const steps = [
+    { status: "placed", label: "Order Placed", icon: Clock, desc: "We have received your coffee request." },
+    { status: "preparing", label: "Preparing", icon: ChefHat, desc: "Our barista is preparing your order." },
+    { status: "out_for_delivery", label: "Out for Delivery", icon: Timer, desc: "Your order is on the way to your table." },
+    { status: "delivered", label: "Delivered", icon: CheckCircle2, desc: "Enjoy your order." }
+  ] as const;
+
+  const normalizedStatus = order ? normalizeStatus(order.status) : "placed";
+  const currentStepIndex = steps.findIndex((s) => s.status === normalizedStatus);
+
+  const getEtaText = () => {
+    if (!order?.estimated_ready_at) return "5 min";
+    const diffMs = new Date(order.estimated_ready_at).getTime() - Date.now();
+    const diffMin = Math.max(0, Math.ceil(diffMs / 60000));
+    return `${diffMin} min`;
+  };
   
   if (loading) {
     return (
@@ -125,8 +140,8 @@ export default function OrderStatus() {
           <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-secondary/10 -z-10" />
           
           {steps.map((step, index) => {
-            const isCompleted = index < currentStepIndex || (order.status === 'completed' && index <= currentStepIndex);
-            const isActive = index === currentStepIndex && order.status !== 'completed';
+            const isCompleted = index < currentStepIndex || (normalizedStatus === "delivered" && index <= currentStepIndex);
+            const isActive = index === currentStepIndex && normalizedStatus !== "delivered";
             const Icon = step.icon;
             
             return (
@@ -160,7 +175,10 @@ export default function OrderStatus() {
         <div className="p-8 bg-card border border-secondary/10 rounded-[2.5rem] flex flex-col items-center text-center shadow-2xl shadow-secondary/5">
           <Timer className="w-8 h-8 text-secondary mb-3" />
           <span className="text-[10px] font-black uppercase text-secondary tracking-widest">Est. Ready In</span>
-          <h2 className="text-4xl font-black mt-1">8-10 <span className="text-sm text-accent/40">min</span></h2>
+          <h2 className="text-4xl font-black mt-1">{getEtaText().replace(" min", "")} <span className="text-sm text-accent/40">min</span></h2>
+          <p className="text-xs text-accent/50 mt-2 uppercase tracking-wider font-bold">
+            Payment: {order.payment_status || "pending"}
+          </p>
         </div>
       </main>
 

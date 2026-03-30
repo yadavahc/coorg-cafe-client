@@ -1,67 +1,78 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Search, 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  CreditCard, 
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  CreditCard,
   Loader2,
-  Table as TableIcon
 } from "lucide-react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
-import { cn, formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import { generateQR } from "@/lib/qr";
+import { BASE_MENU_ITEMS, BASE_MENU_IDS } from "@/lib/menuItems";
 
-interface MenuItem {
+interface CartItem {
   id: string;
   name: string;
   price: number;
-  category: string;
-}
-
-interface CartItem extends MenuItem {
   quantity: number;
+  image: string;
 }
 
 export default function BillingCounter() {
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [menuItems, setMenuItems] = useState(BASE_MENU_ITEMS);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string>("Counter");
   const [paymentQR, setPaymentQR] = useState<string | null>(null);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
 
+  // Fetch additional items from database on mount
   useEffect(() => {
-    fetchItems();
+    async function fetchAdditionalItems() {
+      try {
+        const { data, error } = await supabase
+          .from("menu_items")
+          .select("*")
+          .eq("is_available", true);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          // Add new items from database that aren't in base menu
+          const newItems = data.filter(item => !BASE_MENU_IDS.has(item.id));
+
+          if (newItems.length > 0) {
+            const dbItems = newItems.map(item => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              category: item.category || "Others",
+              image: item.image_url || "/assets/placeholder.png",
+              isBase: false
+            }));
+
+            setMenuItems([...BASE_MENU_ITEMS, ...dbItems]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching menu items:", error);
+        // Keep base items on error
+        setMenuItems(BASE_MENU_ITEMS);
+      }
+    }
+
+    fetchAdditionalItems();
   }, []);
 
-  async function fetchItems() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .eq("is_available", true);
-
-      if (error) throw error;
-      setItems(data || []);
-    } catch (error) {
-      console.error("Error fetching items:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (item: (typeof menuItems)[0]) => {
     const existing = cart.find(i => i.id === item.id);
     if (existing) {
       setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      setCart([...cart, { ...item, quantity: 1 }]);
+      setCart([...cart, { id: item.id, name: item.name, price: item.price, image: item.image, quantity: 1 }]);
     }
   };
 
@@ -79,12 +90,16 @@ export default function BillingCounter() {
   async function handleGeneratePayment() {
     try {
       setIsGeneratingPayment(true);
-      
+
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert([{
+          order_type: "counter_order",
+          payment_method: "online",
+          payment_status: "pending",
           total_amount: total,
-          status: "pending"
+          status: "placed",
+          estimated_ready_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
         }])
         .select()
         .single();
@@ -101,67 +116,39 @@ export default function BillingCounter() {
     }
   }
 
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(search.toLowerCase()) || 
-    item.category.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <div className="flex flex-col xl:flex-row h-full xl:h-[calc(100vh-160px)] gap-8 overflow-hidden">
-      {/* Menu Area */}
+      {/* Menu Grid */}
       <div className="flex-1 flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent/40" />
-            <input 
-              type="text" 
-              placeholder="Search items..."
-              className="w-full bg-card/10 border border-secondary/20 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-secondary transition-colors"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex bg-card/10 border border-secondary/20 rounded-xl p-1">
-            {["Coffee", "Tea", "Snacks"].map((cat) => (
-              <button 
-                key={cat}
-                className="px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors hover:bg-secondary/10"
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+        <div className="px-6">
+          <h2 className="text-2xl font-bold mb-1">Menu Items</h2>
+          <p className="text-accent/40 text-sm">Select items to add to cart</p>
         </div>
 
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-secondary animate-spin" />
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {filteredItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => addToCart(item)}
-                className="flex flex-col text-left p-4 bg-card border border-secondary/20 rounded-2xl hover:border-secondary transition-all active:scale-95 group shadow-sm hover:shadow-lg shadow-secondary/5"
-              >
-                <div className="flex-1 mb-4">
-                  <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">{item.category}</span>
-                  <h3 className="font-bold text-sm leading-tight mt-1 line-clamp-2">{item.name}</h3>
+        <div className="flex-1 overflow-y-auto pr-2 px-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => addToCart(item)}
+              className="flex flex-col text-left p-4 bg-card border border-secondary/20 rounded-2xl hover:border-secondary transition-all active:scale-95 group shadow-sm hover:shadow-lg shadow-secondary/5"
+            >
+              <div className="relative w-full h-20 mb-3 rounded-lg overflow-hidden">
+                <Image src={item.image} alt={item.name} fill className="object-cover" />
+              </div>
+              <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">{item.category}</span>
+              <h3 className="font-bold text-sm leading-tight mt-1 line-clamp-2 flex-1">{item.name}</h3>
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-black text-secondary text-sm">{formatPrice(item.price)}</span>
+                <div className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                  <Plus className="w-3 h-3" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-black text-secondary">{formatPrice(item.price)}</span>
-                  <div className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                    <Plus className="w-3 h-3" />
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Cart Area */}
+      {/* Cart Sidebar */}
       <div className="w-[400px] flex flex-col bg-card border border-secondary/20 rounded-3xl overflow-hidden shadow-2xl">
         <div className="p-6 border-b border-secondary/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -170,7 +157,7 @@ export default function BillingCounter() {
             </div>
             <h2 className="font-bold">Billing Cart</h2>
           </div>
-          <button 
+          <button
             onClick={() => setCart([])}
             className="text-[10px] font-black uppercase text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-full transition-colors"
           >
@@ -192,15 +179,15 @@ export default function BillingCounter() {
                   <p className="text-xs text-accent/40">{formatPrice(item.price)} × {item.quantity}</p>
                 </div>
                 <div className="flex items-center bg-card-foreground/5 rounded-xl border border-secondary/10 overflow-hidden">
-                  <button 
+                  <button
                     onClick={() => removeFromCart(item.id)}
                     className="p-2 hover:bg-red-500/10 text-red-500 transition-colors"
                   >
                     {item.quantity === 1 ? <Trash2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
                   </button>
                   <span className="w-8 text-center text-sm font-black text-secondary">{item.quantity}</span>
-                  <button 
-                    onClick={() => addToCart(item)}
+                  <button
+                    onClick={() => addToCart(menuItems.find(m => m.id === item.id)!)}
                     className="p-2 hover:bg-primary/10 text-primary transition-colors"
                   >
                     <Plus className="w-3 h-3" />
@@ -220,8 +207,8 @@ export default function BillingCounter() {
             <span>TOTAL</span>
             <span className="text-secondary">{formatPrice(total)}</span>
           </div>
-          
-          <button 
+
+          <button
             disabled={cart.length === 0 || isGeneratingPayment}
             onClick={handleGeneratePayment}
             className="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:shadow-none mt-2"
@@ -237,12 +224,12 @@ export default function BillingCounter() {
           <div className="bg-card border border-secondary/30 w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center animate-in zoom-in duration-300">
             <h2 className="text-xl font-black mb-2 uppercase tracking-tight">Scan to Pay</h2>
             <p className="text-sm text-accent/40 mb-8 font-medium">Customer can scan this to pay {formatPrice(total)}</p>
-            
+
             <div className="bg-white p-6 rounded-[2.5rem] shadow-inner mb-8 border-8 border-secondary/5 inline-block">
               <img src={paymentQR} alt="Payment QR" className="w-48 h-48" />
             </div>
 
-            <button 
+            <button
               onClick={() => {
                 setPaymentQR(null);
                 setCart([]);

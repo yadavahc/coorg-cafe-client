@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method TEXT NOT NULL DEFAULT 'cash' CHECK (payment_method IN ('cash', 'online')),
     payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'cash_pending', 'cash_confirmed')),
     total_amount DECIMAL(10, 2) NOT NULL,
-    status TEXT NOT NULL DEFAULT 'placed' CHECK (status IN ('placed', 'preparing', 'ready', 'delivered')),
+    status TEXT NOT NULL DEFAULT 'placed' CHECK (status IN ('placed', 'preparing', 'out_for_delivery', 'delivered')),
     estimated_ready_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -77,11 +77,6 @@ CREATE INDEX IF NOT EXISTS idx_orders_order_type_created_at ON orders(order_type
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_table_number_created_at ON orders(table_number, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
-
--- Realtime settings
-ALTER PUBLICATION supabase_realtime ADD TABLE orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE menu_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
 
 -- RLS Policies (testing only)
 ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;

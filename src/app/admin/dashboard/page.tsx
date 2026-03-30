@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Clock, 
-  ChefHat, 
-  CheckCircle2, 
+import {
+  Clock,
+  ChefHat,
+  CheckCircle2,
   Table as TableIcon,
   Timer,
   AlertCircle,
@@ -13,14 +13,17 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cn, formatPrice } from "@/lib/utils";
+import * as analytics from "@/lib/analytics";
 
 interface Order {
   id: string;
-  table_id: string;
+  table_id: string | null;
+  table_number?: number | null;
+  order_type: "table_order" | "counter_order";
+  payment_status: "pending" | "paid" | "failed" | "cash_pending" | "cash_confirmed";
   total_amount: number;
-  status: 'pending' | 'preparing' | 'completed' | 'paid';
+  status: "placed" | "preparing" | "out_for_delivery" | "delivered" | "pending" | "completed";
   created_at: string;
-  table_number?: number;
 }
 
 export default function OrderDashboard() {
@@ -63,7 +66,7 @@ export default function OrderDashboard() {
           *,
           cafe_tables (table_number)
         `)
-        .neq("status", "completed")
+        .neq("status", "delivered")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -81,7 +84,7 @@ export default function OrderDashboard() {
     }
   }
 
-  async function updateStatus(id: string, newStatus: Order['status']) {
+  async function updateStatus(id: string, newStatus: "preparing" | "out_for_delivery" | "delivered") {
     try {
       const { error } = await supabase
         .from("orders")
@@ -95,12 +98,23 @@ export default function OrderDashboard() {
     }
   }
 
-  const getStatusConfig = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return { label: 'New', color: 'bg-orange-500', icon: AlertCircle };
-      case 'preparing': return { label: 'Cooking', color: 'bg-blue-500', icon: ChefHat };
-      case 'paid': return { label: 'Paid', color: 'bg-green-500', icon: CheckCircle2 };
-      default: return { label: 'Done', color: 'bg-zinc-500', icon: CheckCircle2 };
+  const normalizeStatus = (status: Order["status"]) => {
+    if (status === "pending") return "placed";
+    if (status === "completed") return "delivered";
+    return status;
+  };
+
+  const getStatusConfig = (status: Order["status"]) => {
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
+      case "placed":
+        return { label: "Placed", color: "bg-orange-500", icon: AlertCircle };
+      case "preparing":
+        return { label: "Preparing", color: "bg-blue-500", icon: ChefHat };
+      case "out_for_delivery":
+        return { label: "Out", color: "bg-indigo-500", icon: Timer };
+      default:
+        return { label: "Delivered", color: "bg-green-600", icon: CheckCircle2 };
     }
   };
 
@@ -122,7 +136,7 @@ export default function OrderDashboard() {
         <div className="p-6 bg-primary/10 border border-primary/20 rounded-3xl">
           <span className="text-[10px] font-black uppercase text-primary tracking-widest">Today's Revenue</span>
           <h2 className="text-3xl font-black mt-1 text-secondary">
-            {formatPrice(orders.reduce((acc, o) => acc + (o.status === 'paid' ? o.total_amount : 0), 0))}
+            {formatPrice(analytics.getTodayRevenue(orders))}
           </h2>
         </div>
         <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-3xl">
@@ -131,7 +145,7 @@ export default function OrderDashboard() {
         </div>
         <div className="p-6 bg-secondary/5 border border-secondary/10 rounded-3xl">
           <span className="text-[10px] font-black uppercase text-accent/40 tracking-widest">Avg. Prep Time</span>
-          <h2 className="text-3xl font-black mt-1">12 <span className="text-sm font-bold text-accent/40 tracking-normal">min</span></h2>
+          <h2 className="text-3xl font-black mt-1">{analytics.calculateOrderMetrics(orders).avgPrepTime} <span className="text-sm font-bold text-accent/40 tracking-normal">min</span></h2>
         </div>
       </div>
 
@@ -150,6 +164,7 @@ export default function OrderDashboard() {
           {orders.map((order) => {
             const config = getStatusConfig(order.status);
             const Icon = config.icon;
+            const normalizedStatus = normalizeStatus(order.status);
             const timeAgo = Math.floor((new Date().getTime() - new Date(order.created_at).getTime()) / 60000);
 
             return (
@@ -161,7 +176,9 @@ export default function OrderDashboard() {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/10 text-secondary rounded-full border border-secondary/10">
                       <TableIcon className="w-3 h-3" />
-                      <span className="text-xs font-black uppercase">Table {order.table_number || 'NA'}</span>
+                      <span className="text-xs font-black uppercase">
+                        {order.order_type === "counter_order" ? "Counter" : `Table ${order.table_number || "NA"}`}
+                      </span>
                     </div>
                     <div className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase text-white shadow-lg", config.color)}>
                       <Icon className="w-3 h-3" />
@@ -182,17 +199,20 @@ export default function OrderDashboard() {
                       <span className="text-sm opacity-60">Total Bill</span>
                       <span className="text-xl text-secondary">{formatPrice(order.total_amount)}</span>
                     </div>
+                    <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent/50">
+                      Payment: {order.payment_status}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
-                      onClick={() => updateStatus(order.id, 'preparing')}
+                      onClick={() => updateStatus(order.id, normalizedStatus === "placed" ? "preparing" : "out_for_delivery")}
                       className="px-4 py-2 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-all"
                     >
-                      Cook
+                      {normalizedStatus === "placed" ? "Prepare" : "Dispatch"}
                     </button>
                     <button 
-                      onClick={() => updateStatus(order.id, 'completed')}
+                      onClick={() => updateStatus(order.id, 'delivered')}
                       className="px-4 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-xl text-xs font-bold hover:bg-green-500 hover:text-white transition-all"
                     >
                       Deliver

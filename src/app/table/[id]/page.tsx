@@ -23,6 +23,13 @@ interface MenuItem {
   is_available: boolean;
 }
 
+interface TableInfo {
+  id?: string;
+  table_number: number;
+  is_available?: boolean;
+  status?: "available" | "occupied" | "inactive";
+}
+
 interface CartItem extends MenuItem {
   quantity: number;
 }
@@ -30,11 +37,12 @@ interface CartItem extends MenuItem {
 export default function TableMenu() {
   const { id } = useParams();
   const router = useRouter();
-  const [table, setTable] = useState<any>(null);
+  const [table, setTable] = useState<TableInfo | null>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [tableUnavailable, setTableUnavailable] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,7 +60,13 @@ export default function TableMenu() {
         .single();
 
       if (tableError) console.warn("Table not found, using generic ID");
-      setTable(tableData || { table_number: id });
+      const routeTableNumber = parseInt(id?.toString() || "0", 10);
+      setTable(tableData || { table_number: Number.isNaN(routeTableNumber) ? 0 : routeTableNumber });
+      if (tableData && (!tableData.is_available || tableData.status === "inactive")) {
+        setTableUnavailable(true);
+      } else {
+        setTableUnavailable(false);
+      }
 
       // Fetch Menu
       const { data: menuData, error: menuError } = await supabase
@@ -133,6 +147,14 @@ export default function TableMenu() {
         </div>
       </section>
 
+      {tableUnavailable && (
+        <section className="px-6 pb-2">
+          <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl text-sm font-bold">
+            This table is currently inactive. Please contact staff or choose another table.
+          </div>
+        </section>
+      )}
+
       {/* Category Pills */}
       <div className="flex gap-3 overflow-x-auto px-6 py-2 no-scrollbar">
         {categories.map((cat) => (
@@ -203,8 +225,9 @@ export default function TableMenu() {
       {totalItems > 0 && (
         <div className="fixed bottom-8 left-6 right-6 z-50">
           <button 
+            disabled={tableUnavailable}
             onClick={() => router.push(`/table/${id}/checkout?cart=${encodeURIComponent(JSON.stringify(cart))}`)}
-            className="w-full bg-primary p-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl shadow-primary/40 animate-in slide-in-from-bottom-10 duration-500 hover:scale-[1.02] transition-transform active:scale-95"
+            className="w-full bg-primary p-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl shadow-primary/40 animate-in slide-in-from-bottom-10 duration-500 hover:scale-[1.02] transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-3 rounded-2xl relative">
