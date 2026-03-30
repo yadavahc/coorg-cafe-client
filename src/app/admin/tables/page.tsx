@@ -262,7 +262,7 @@ export default function TableManagement() {
                   </button>
                   {paymentQRs[table.table_number] && (
                     <button
-                      onClick={() => downloadQR(paymentQRs[table.table_number], `${table.table_number}_payment`)}
+                      onClick={() => downloadQR(paymentQRs[table.table_number], table.table_number)}
                       className="flex-1 py-2 bg-blue-500/10 border border-blue-500/10 rounded-xl flex items-center justify-center gap-2 text-xs font-bold hover:bg-blue-500/20 transition-all"
                       title="Download Payment Checkout QR"
                     >
